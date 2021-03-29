@@ -1,17 +1,33 @@
 ﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public abstract class Character : MonoBehaviour
 {
 
-    protected Animator myAnimator;
+    public Animator MyAnimator { get; private set; }
 
     [SerializeField]
     protected GameObject knifePrefab;
 
     [SerializeField]
+    protected int health;
+
+    [SerializeField]
+    private EdgeCollider2D swordCollider;
+
+    [SerializeField]
+    private List<string> damageCollider;
+
+    public abstract bool GetIsDead();
+
+    [SerializeField]
     protected float movementSpeed;
 
     public bool Attack { get; set; }
+
+    public bool TakingDamage { get; set; }
+    public EdgeCollider2D SwordCollider { get => swordCollider; set => swordCollider = value; }
 
     [SerializeField]
     private Transform knifePos;
@@ -21,9 +37,8 @@ public abstract class Character : MonoBehaviour
     // Start is called before the first frame update
     public virtual void Start()
     {
-        Debug.Log("Charater Start");
         facingRight = true;
-        myAnimator = GetComponent<Animator>();
+        MyAnimator = GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -54,5 +69,19 @@ public abstract class Character : MonoBehaviour
             GameObject tmp = (GameObject)Instantiate(knifePrefab, knifePos.position, Quaternion.Euler(new Vector3(0, 0, 90)));
             tmp.GetComponent<Knife>().Initialize(Vector2.left);
         }
+    }
+    public abstract IEnumerator TakeDamage();
+    public abstract void Death();
+
+    public virtual void OnTriggerEnter2D(Collider2D other)
+    {
+        if(damageCollider.Contains(other.tag))
+        {
+            StartCoroutine(TakeDamage());
+        }
+    }
+    public void MeleeAttack()
+    {
+        SwordCollider.enabled = true;
     }
 }

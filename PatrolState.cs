@@ -19,6 +19,11 @@ public class PatrolState : IEnemyState
         Patrol();
 
         enemy.Move();
+
+        if (enemy.Target != null && enemy.InThrowRange)
+        {
+            enemy.ChangeState(new RangedState());
+        }
     }
 
     public void Exit()
@@ -26,9 +31,12 @@ public class PatrolState : IEnemyState
         
     }
 
-    public void OnTriggerEnter(Collision2D other)
+    public void OnTriggerEnter(Collider2D other)
     {
-        
+        if (other.tag == "Knife")
+        {
+            enemy.Target = Player.Instance.gameObject;
+        }
     }
     private void Patrol()
     {

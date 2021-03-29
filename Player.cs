@@ -2,9 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public delegate void DeadEventHandler();
 public class Player : Character
 {
     private static  Player instance;
+
+    [SerializeField]
+    private Transform startPos;
+
+    public event DeadEventHandler Dead;
     public static  Player Instance
     {
         get { 
@@ -29,6 +35,13 @@ public class Player : Character
     [SerializeField]
     private float jumpForce;
 
+    private bool immortal = false;
+
+    [SerializeField]
+    private float immortalTime;
+
+    private SpriteRenderer spriteRender;
+
     public Rigidbody2D MyRigidbody;
 
 
@@ -42,41 +55,70 @@ public class Player : Character
     public bool Jump { get; set; }
     public bool OnGround { get; set; }
 
+    public override bool GetIsDead()
+    {
+        if (health <= 0)
+        {
+            OnDead();
+        }
+        return health <= 0;
+    }
+
     // Start is called before the first frame update
     public override void Start()
     {
-        Debug.Log("Player Start");
         base.Start();
         movementSpeed = 7;
 
         MyRigidbody = GetComponent<Rigidbody2D>();
-        
+
+        spriteRender = GetComponent<SpriteRenderer>();
+
+
     }
     void Update()
     {
-        HandleInput();
-        FixUpdate();
+        if (!TakingDamage && !GetIsDead())
+        {
+            if(transform.position.y<-14f)
+            {
+                Death();
+            }
+            HandleInput();
+            FixUpdate();
+        }
+
     }
 
     // Update is called once per frame
     void FixUpdate()
     {
+        if(!TakingDamage && !GetIsDead())
+        {
+            float horizontal = Input.GetAxis("Horizontal");
 
-        float horizontal = Input.GetAxis("Horizontal");
+            OnGround = IsGround();
 
-        OnGround = IsGround();
+            HandleMoment(horizontal);
 
-        HandleMoment(horizontal);
+            Flip(horizontal);
 
-        Flip(horizontal);
-
-        HandleLayers();
+            HandleLayers();
+        }
+       
+    }
+    public void OnDead()
+    {
+        if(Dead!=null)
+        {
+            Dead();
+        }
     }
     private void HandleMoment(float horizontal)
     {
         if (MyRigidbody.velocity.y < 0)
         {
-            myAnimator.SetBool("land", true);
+            MyAnimator.SetBool("land", true);
         }
         if (!Attack && !Slide)
         {
@@ -86,8 +128,8 @@ public class Player : Character
         //{
 
         //}
-        
-        myAnimator.SetFloat("speed", Mathf.Abs(horizontal));
+
+        MyAnimator.SetFloat("speed", Mathf.Abs(horizontal));
     }
     private void Flip(float horizontal)
     {
@@ -100,19 +142,19 @@ public class Player : Character
     {
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
-            myAnimator.SetTrigger("attack");
+            MyAnimator.SetTrigger("attack");
         }
         if (Input.GetKeyDown(KeyCode.S))
         {
-            myAnimator.SetTrigger("slide");
+            MyAnimator.SetTrigger("slide");
         }
         if (Input.GetKeyDown(KeyCode.Space))
-        { 
-            myAnimator.SetTrigger("jump");
+        {
+            MyAnimator.SetTrigger("jump");
         }
         if(Input.GetKeyDown(KeyCode.F))
         {
-            myAnimator.SetTrigger("throw");
+            MyAnimator.SetTrigger("throw");
         }
     }
 
@@ -138,11 +180,11 @@ public class Player : Character
     {
         if (!OnGround)
         {
-            myAnimator.SetLayerWeight(1, 1);
+            MyAnimator.SetLayerWeight(1, 1);
         }
         else
         {
-            myAnimator.SetLayerWeight(1, 0);
+            MyAnimator.SetLayerWeight(1, 0);
         }
     }
     public override void ThrowKnife(int value)
@@ -152,5 +194,44 @@ public class Player : Character
             base.ThrowKnife(value);
         }
 
+    }
+    private IEnumerator IndicateImmortal()
+    {
+        while(immortal)
+        {
+            spriteRender.enabled = false;
+            yield return new WaitForSeconds(.1f);
+            spriteRender.enabled = true;
+            yield return new WaitForSeconds(.1f);
+        }
+    }    
+    public override IEnumerator TakeDamage()
+    {
+        if (!immortal)
+        {
+            health -= 10;
+            if (!GetIsDead())
+            {
+                MyAnimator.SetTrigger("death");
+                immortal = true;
+                StartCoroutine(IndicateImmortal());
+                yield return new WaitForSeconds(immortalTime);
+                immortal = false;
+            }
+            else
+            {
+                MyAnimator.SetTrigger("die");
+            }
+            yield return null;
+        }
+       
+    }
+
+    public override void Death()
+    {
+        MyRigidbody.velocity = Vector2.zero;
+        MyAnimator.SetTrigger("idle");
+        health = 30;
+        transform.position = startPos.position;
     }
 }

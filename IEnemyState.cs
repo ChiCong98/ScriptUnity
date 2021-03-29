@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IEnemyState 
+public interface IEnemyState
 {
     void Execute();
     void Enter(Enemy enemy);
     void Exit();
-    void OnTriggerEnter(Collision2D other);
+    void OnTriggerEnter(Collider2D other);
 }

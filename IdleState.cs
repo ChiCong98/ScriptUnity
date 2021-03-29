@@ -17,6 +17,11 @@ public class IdleState : IEnemyState
     public void Execute()
     {
         Idle();
+
+        if(enemy.Target!=null)
+        {
+            enemy.ChangeState(new PatrolState());
+        }
     }
 
     public void Exit()
@@ -24,9 +29,12 @@ public class IdleState : IEnemyState
         
     }
 
-    public void OnTriggerEnter(Collision2D other)
+    public void OnTriggerEnter(Collider2D other)
     {
-        
+        if(other.tag=="Knife")
+        {
+            enemy.Target = Player.Instance.gameObject;
+        }
     }
     private void Idle()
     {
